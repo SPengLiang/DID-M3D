@@ -62,7 +62,7 @@ DID-M3D
   ln -s $KITTI_DATA_PATH ./data/KITTI3D
   ```
 
-* To ease the usage, we provide the pre-generated dense depth files at: [Google Drive](https://drive.google.com/file/d/1xzuAqty5GEiQSqBS5hpVm3LRl0tTNkT8/view?usp=sharing) 
+* To ease the usage, we provide the pre-generated dense depth files at: [Google Drive](https://drive.google.com/file/d/1mlHtG8ZXLfjm0lSpUOXHulGF9fsthRtM/view?usp=sharing) 
 
 ### Training & Testing
 
@@ -86,7 +86,7 @@ Here we give the comparison.
 
 <table align="center">
     <tr>
-        <td rowspan="1",div align="center">Models</td>
+        <td rowspan="2",div align="center">Models</td>
         <td colspan="3",div align="center">Car@BEV IoU=0.7</td>    
         <td colspan="3",div align="center">Car@3D IoU=0.7</td>  
     </tr>
