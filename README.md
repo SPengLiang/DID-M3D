@@ -131,4 +131,4 @@ Here we give the comparison.
 
 ## Acknowledgements
 
-This respository is mainly based on [GitHub - SuperMHP/GUPNet](https://github.com/SuperMHP/GUPNet), and it also benefits from [Second](https://github.com/traveller59/second.pytorch). Thanks for their great works!
+This respository is mainly based on [GUPNet](https://github.com/SuperMHP/GUPNet), and it also benefits from [Second](https://github.com/traveller59/second.pytorch). Thanks for their great works!
