@@ -32,7 +32,7 @@ b. Install the dependent libraries as follows:
 * Install the dependent python libraries: 
   
   ```shell
-  pip install torch==1.10.0 torchvision==0.11.1 pyyaml scikit-image opencv-python tqdm
+  pip install torch==1.10.0 torchvision==0.11.1 pyyaml scikit-image opencv-python numba tqdm
   ```
 
 * We test this repository on Nvidia 3080Ti GPUs and Ubuntu 18.04. You can also follow the install instructions in [GUPNet](https://github.com/SuperMHP/GUPNet) (This respository is based on it) to perform experiments with lower PyTorch/GPU versions.
