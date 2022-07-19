@@ -1,9 +1,9 @@
 dataset:
   type: 'kitti'
-  data_dir: 'data/KITTI'
-  root_dir: '/pvc_user/pengliang/DID-M3D'
-  dense_depth_dir: '/pvc_data/personal/pengliang/KITTI3D/training/depth_dense'
-  label_dir: '/pvc_data/personal/pengliang/KITTI3D/training/label_2'
+  data_dir: 'data/KITTI3D'
+  root_dir: '.'
+  dense_depth_dir: 'data/KITTI3D/training/depth_dense'
+  label_dir: 'data/KITTI3D/training/label_2'
   eval_cls: ['Car']
 #  eval_cls: ['Car','Pedestrian','Cyclist']
   batch_size: 16
