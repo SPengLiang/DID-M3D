@@ -192,7 +192,7 @@ class KITTI(data.Dataset):
                     continue
     
                 # filter inappropriate samples by difficulty
-                if objects[i].level_str == 'UnKnown' or objects[i].pos[-1] < 2 or objects[i].pos[-1] > 60:
+                if objects[i].level_str == 'UnKnown' or objects[i].pos[-1] < 2:
                     continue
 
                 # process 2d bbox & get 2d center
