@@ -1,23 +1,27 @@
 import numpy as np
 
-
 num_heading_bin = 12  # hyper param
+
+
 def check_range(angle):
     if angle > np.pi:  angle -= 2 * np.pi
     if angle < -np.pi: angle += 2 * np.pi
     return angle
-    
+
+
 def get_angle_from_box3d(box3d_pts_3d):
-    direct_vec = (box3d_pts_3d[0]+box3d_pts_3d[1])/2-(box3d_pts_3d[2]+box3d_pts_3d[3])/2
-    if direct_vec[0]>=0 and direct_vec[-1]>=0:
-        angle = -np.arctan(direct_vec[-1]/direct_vec[0])
-    elif direct_vec[0]<0 and direct_vec[-1]>=0:   
-        angle = -(np.pi-np.arctan(np.abs(direct_vec[-1]/direct_vec[0])))
-    elif direct_vec[0]<0 and direct_vec[-1]<0: 
-        angle = np.pi-np.arctan(np.abs(direct_vec[-1]/direct_vec[0]))
-    elif direct_vec[0]>=0 and direct_vec[-1]<0:
-        angle = np.arctan(np.abs(direct_vec[-1]/direct_vec[0]))
-    return angle  
+    direct_vec = (box3d_pts_3d[0] + box3d_pts_3d[1]) / 2 - (box3d_pts_3d[2] + box3d_pts_3d[3]) / 2
+    if direct_vec[0] >= 0 and direct_vec[-1] >= 0:
+        angle = -np.arctan(direct_vec[-1] / direct_vec[0])
+    elif direct_vec[0] < 0 and direct_vec[-1] >= 0:
+        angle = -(np.pi - np.arctan(np.abs(direct_vec[-1] / direct_vec[0])))
+    elif direct_vec[0] < 0 and direct_vec[-1] < 0:
+        angle = np.pi - np.arctan(np.abs(direct_vec[-1] / direct_vec[0]))
+    elif direct_vec[0] >= 0 and direct_vec[-1] < 0:
+        angle = np.arctan(np.abs(direct_vec[-1] / direct_vec[0]))
+    return angle
+
+
 def angle2class(angle):
     ''' Convert continuous angle to discrete class and residual. '''
     angle = angle % (2 * np.pi)
@@ -42,29 +46,29 @@ def class2angle(cls, residual, to_label_format=False):
 def gaussian_radius(bbox_size, min_overlap=0.7):
     height, width = bbox_size
 
-    a1  = 1
-    b1  = (height + width)
-    c1  = width * height * (1 - min_overlap) / (1 + min_overlap)
+    a1 = 1
+    b1 = (height + width)
+    c1 = width * height * (1 - min_overlap) / (1 + min_overlap)
     sq1 = np.sqrt(b1 ** 2 - 4 * a1 * c1)
-    r1  = (b1 + sq1) / 2
+    r1 = (b1 + sq1) / 2
 
-    a2  = 4
-    b2  = 2 * (height + width)
-    c2  = (1 - min_overlap) * width * height
+    a2 = 4
+    b2 = 2 * (height + width)
+    c2 = (1 - min_overlap) * width * height
     sq2 = np.sqrt(b2 ** 2 - 4 * a2 * c2)
-    r2  = (b2 + sq2) / 2
+    r2 = (b2 + sq2) / 2
 
-    a3  = 4 * min_overlap
-    b3  = -2 * min_overlap * (height + width)
-    c3  = (min_overlap - 1) * width * height
+    a3 = 4 * min_overlap
+    b3 = -2 * min_overlap * (height + width)
+    c3 = (min_overlap - 1) * width * height
     sq3 = np.sqrt(b3 ** 2 - 4 * a3 * c3)
-    r3  = (b3 + sq3) / 2
+    r3 = (b3 + sq3) / 2
     return min(r1, r2, r3)
 
 
 def gaussian2D(shape, sigma=1):
     m, n = [(ss - 1.) / 2. for ss in shape]
-    y, x = np.ogrid[-m:m+1,-n:n+1]
+    y, x = np.ogrid[-m:m + 1, -n:n + 1]
 
     h = np.exp(-(x * x + y * y) / (2 * sigma * sigma))
     h[h < np.finfo(h.dtype).eps * h.max()] = 0
@@ -106,6 +110,6 @@ def draw_msra_gaussian(heatmap, center, sigma):
     img_x = max(0, ul[0]), min(br[0], h)
     img_y = max(0, ul[1]), min(br[1], w)
     heatmap[img_y[0]:img_y[1], img_x[0]:img_x[1]] = np.maximum(
-    heatmap[img_y[0]:img_y[1], img_x[0]:img_x[1]],
-    g[g_y[0]:g_y[1], g_x[0]:g_x[1]])
+        heatmap[img_y[0]:img_y[1], img_x[0]:img_x[1]],
+        g[g_y[0]:g_y[1], g_x[0]:g_x[1]])
     return heatmap

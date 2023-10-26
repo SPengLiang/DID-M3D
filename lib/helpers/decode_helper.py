@@ -4,6 +4,7 @@ import torch.nn as nn
 from lib.datasets.utils import class2angle
 import cv2 as cv
 
+
 def decode_detections(dets, info, calibs, cls_mean_size, threshold, problist=None):
     '''
     NOTE: THIS IS A NUMPY FUNCTION
@@ -26,7 +27,7 @@ def decode_detections(dets, info, calibs, cls_mean_size, threshold, problist=Non
             y = dets[i, j, 3] * info['bbox_downsample_ratio'][i][1]
             w = dets[i, j, 4] * info['bbox_downsample_ratio'][i][0]
             h = dets[i, j, 5] * info['bbox_downsample_ratio'][i][1]
-            bbox = [x-w/2, y-h/2, x+w/2, y+h/2]
+            bbox = [x - w / 2, y - h / 2, x + w / 2, y + h / 2]
 
             depth = dets[i, j, -2]
             score *= dets[i, j, -1]
@@ -38,7 +39,7 @@ def decode_detections(dets, info, calibs, cls_mean_size, threshold, problist=Non
             # dimensions decoding
             dimensions = dets[i, j, 30:33]
             dimensions += cls_mean_size[int(cls_id)]
-            if True in (dimensions<0.0): continue
+            if True in (dimensions < 0.0): continue
 
             # positions decoding
             x3d = dets[i, j, 33] * info['bbox_downsample_ratio'][i][0]
@@ -59,38 +60,41 @@ def decode_detections(dets, info, calibs, cls_mean_size, threshold, problist=Non
 #     im_color = cv.applyColorMap(temp, cv.COLORMAP_JET)
 #     return im_color
 
-#two stage style
+# two stage style
 def extract_dets_from_outputs(outputs, conf_mode='ada', K=50):
     # get src outputs
     heatmap = outputs['heatmap']
     size_2d = outputs['size_2d']
     offset_2d = outputs['offset_2d']
 
-    batch, channel, height, width = heatmap.size() # get shape
-    heading = outputs['heading'].view(batch,K,-1)
+    batch, channel, height, width = heatmap.size()  # get shape
 
-    vis_depth = outputs['vis_depth'].view(batch,K,7,7)
-    att_depth = outputs['att_depth'].view(batch,K,7,7)
+    heading = outputs['heading'].view(batch, K, -1)
+
+    # 主要改动
+    vis_depth = outputs['vis_depth'].view(batch, K, 7, 7)
+    att_depth = outputs['att_depth'].view(batch, K, 7, 7)
     ins_depth = vis_depth + att_depth
 
-    ins_depth_uncer = outputs['ins_depth_uncer'].view(batch,K,7,7)
+    ins_depth_uncer = outputs['ins_depth_uncer'].view(batch, K, 7, 7)
     merge_prob = (-(0.5 * ins_depth_uncer).exp()).exp()
-    merge_depth = (torch.sum((ins_depth*merge_prob).view(batch,K,-1), dim=-1) /
-                   torch.sum(merge_prob.view(batch,K,-1), dim=-1))
+    merge_depth = (torch.sum((ins_depth * merge_prob).view(batch, K, -1), dim=-1) /
+                   torch.sum(merge_prob.view(batch, K, -1), dim=-1))
     merge_depth = merge_depth.unsqueeze(2)
 
     if conf_mode == 'ada':
-        merge_conf = (torch.sum(merge_prob.view(batch,K,-1)**2, dim=-1) / \
-                      torch.sum(merge_prob.view(batch,K,-1), dim=-1)).unsqueeze(2)
+        merge_conf = (torch.sum(merge_prob.view(batch, K, -1) ** 2, dim=-1) / \
+                      torch.sum(merge_prob.view(batch, K, -1), dim=-1)).unsqueeze(2)
     elif conf_mode == 'max':
         merge_conf = (merge_prob.view(batch, K, -1).max(-1))[0].unsqueeze(2)
     else:
         raise NotImplementedError("%s confidence aggreation is not supported" % conf_mode)
 
-    size_3d = outputs['size_3d'].view(batch,K,-1)
-    offset_3d = outputs['offset_3d'].view(batch,K,-1)
+    size_3d = outputs['size_3d'].view(batch, K, -1)
+    offset_3d = outputs['offset_3d'].view(batch, K, -1)
 
     heatmap = torch.clamp(heatmap.sigmoid_(), min=1e-4, max=1 - 1e-4)
+
     # perform nms on heatmaps
     heatmap = _nms(heatmap)
     scores, inds, cls_ids, xs, ys = _topk(heatmap, K=K)
@@ -104,7 +108,7 @@ def extract_dets_from_outputs(outputs, conf_mode='ada', K=50):
     ys3d = ys.view(batch, K, 1) + offset_3d[:, :, 1:2]
 
     cls_ids = cls_ids.view(batch, K, 1).float()
-    scores = scores.view(batch, K, 1)
+    scores = scores.view(batch, K, 1)       # 没有融合深度信息
 
     # check shape
     xs2d = xs2d.view(batch, K, 1)
@@ -115,9 +119,14 @@ def extract_dets_from_outputs(outputs, conf_mode='ada', K=50):
     size_2d = _transpose_and_gather_feat(size_2d, inds)
     size_2d = size_2d.view(batch, K, 2)
 
-    detections = torch.cat([cls_ids, scores, xs2d, ys2d, size_2d, heading, size_3d, xs3d, ys3d, merge_depth, merge_conf], dim=2)
+    detections = torch.cat(
+        [cls_ids, scores, xs2d, ys2d, size_2d, heading, size_3d, xs3d, ys3d, merge_depth, merge_conf], dim=2)
 
     return detections
+
+
+############### auxiliary function ############
+
 
 def _nms(heatmap, kernel=3):
     padding = (kernel - 1) // 2
@@ -163,8 +172,8 @@ def _gather_feat(feat, ind, mask=None):
 
     Returns: tensor shaped in B * K or B * sum(mask)
     '''
-    dim  = feat.size(2)  # get channel dim
-    ind  = ind.unsqueeze(2).expand(ind.size(0), ind.size(1), dim)  # B*len(ind) --> B*len(ind)*1 --> B*len(ind)*C
+    dim = feat.size(2)  # get channel dim
+    ind = ind.unsqueeze(2).expand(ind.size(0), ind.size(1), dim)  # B*len(ind) --> B*len(ind)*1 --> B*len(ind)*C
     feat = feat.gather(1, ind)  # B*(HW)*C ---> B*K*C
     if mask is not None:
         mask = mask.unsqueeze(2).expand_as(feat)  # B*50 ---> B*K*1 --> B*K*C
@@ -180,9 +189,9 @@ def _transpose_and_gather_feat(feat, ind):
         ind: indices tensor shaped in B * K
     Returns:
     '''
-    feat = feat.permute(0, 2, 3, 1).contiguous()   # B * C * H * W ---> B * H * W * C
-    feat = feat.view(feat.size(0), -1, feat.size(3))   # B * H * W * C ---> B * (H*W) * C
-    feat = _gather_feat(feat, ind)     # B * len(ind) * C
+    feat = feat.permute(0, 2, 3, 1).contiguous()  # B * C * H * W ---> B * H * W * C
+    feat = feat.view(feat.size(0), -1, feat.size(3))  # B * H * W * C ---> B * (H*W) * C
+    feat = _gather_feat(feat, ind)  # B * len(ind) * C
     return feat
 
 
@@ -191,7 +200,6 @@ def get_heading_angle(heading):
     cls = np.argmax(heading_bin)
     res = heading_res[cls]
     return class2angle(cls, res, to_label_format=True)
-
 
 
 if __name__ == '__main__':

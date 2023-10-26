@@ -1,6 +1,8 @@
 import numpy as np
 import cv2
 import pdb
+
+
 ################  Object3D  ##################
 
 def get_objects_from_label(label_file):
@@ -29,7 +31,6 @@ class Object3d(object):
         self.level_str = None
         self.level = self.get_obj_level()
 
-
     def get_obj_level(self):
         height = float(self.box2d[3]) - float(self.box2d[1]) + 1
 
@@ -50,7 +51,6 @@ class Object3d(object):
             self.level_str = 'UnKnown'
             return 4
 
-
     def generate_corners3d(self):
         """
         generate corners3d representation for this object
@@ -69,7 +69,6 @@ class Object3d(object):
         corners3d = corners3d + self.pos
         return corners3d
 
-
     def to_bev_box2d(self, oblique=True, voxel_size=0.1):
         """
         :param bev_shape: (2) for bev shape (h, w), => (y_max, x_max) in image
@@ -82,7 +81,8 @@ class Object3d(object):
             xz_corners = corners3d[0:4, [0, 2]]
             box2d = np.zeros((4, 2), dtype=np.int32)
             box2d[:, 0] = ((xz_corners[:, 0] - Object3d.MIN_XZ[0]) / voxel_size).astype(np.int32)
-            box2d[:, 1] = Object3d.BEV_SHAPE[0] - 1 - ((xz_corners[:, 1] - Object3d.MIN_XZ[1]) / voxel_size).astype(np.int32)
+            box2d[:, 1] = Object3d.BEV_SHAPE[0] - 1 - ((xz_corners[:, 1] - Object3d.MIN_XZ[1]) / voxel_size).astype(
+                np.int32)
             box2d[:, 0] = np.clip(box2d[:, 0], 0, Object3d.BEV_SHAPE[1])
             box2d[:, 1] = np.clip(box2d[:, 1], 0, Object3d.BEV_SHAPE[0])
         else:
@@ -96,13 +96,11 @@ class Object3d(object):
 
         return box2d
 
-
     def to_str(self):
         print_str = '%s %.3f %.3f %.3f box2d: %s hwl: [%.3f %.3f %.3f] pos: %s ry: %.3f' \
-                     % (self.cls_type, self.trucation, self.occlusion, self.alpha, self.box2d, self.h, self.w, self.l,
-                        self.pos, self.ry)
+                    % (self.cls_type, self.trucation, self.occlusion, self.alpha, self.box2d, self.h, self.w, self.l,
+                       self.pos, self.ry)
         return print_str
-
 
     def to_kitti_format(self):
         kitti_str = '%s %.2f %d %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f %.2f' \
@@ -110,7 +108,6 @@ class Object3d(object):
                        self.box2d[2], self.box2d[3], self.h, self.w, self.l, self.pos[0], self.pos[1], self.pos[2],
                        self.ry)
         return kitti_str
-
 
 
 ###################  calibration  ###################
@@ -292,68 +289,75 @@ class Calibration(object):
             alpha += 2 * np.pi
 
         return alpha
-    def flip(self,img_size):      
+
+    def flip(self, img_size):
         wsize = 4
         hsize = 2
-        p2ds = (np.concatenate([np.expand_dims(np.tile(np.expand_dims(np.linspace(0,img_size[0],wsize),0),[hsize,1]),-1),\
-                                np.expand_dims(np.tile(np.expand_dims(np.linspace(0,img_size[1],hsize),1),[1,wsize]),-1),
-                                np.linspace(2,78,wsize*hsize).reshape(hsize,wsize,1)],-1)).reshape(-1,3)
-        p3ds = self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])
-        p3ds[:,0]*=-1
-        p2ds[:,0] = img_size[0] - p2ds[:,0]
-        
-        #self.P2[0,3] *= -1
-        cos_matrix = np.zeros([wsize*hsize,2,7])
-        cos_matrix[:,0,0] = p3ds[:,0]
-        cos_matrix[:,0,1] = cos_matrix[:,1,2] = p3ds[:,2]
-        cos_matrix[:,1,0] = p3ds[:,1]
-        cos_matrix[:,0,3] = cos_matrix[:,1,4] = 1
-        cos_matrix[:,:,-2] = -p2ds[:,:2]
-        cos_matrix[:,:,-1] = (-p2ds[:,:2]*p3ds[:,2:3])
-        new_calib = np.linalg.svd(cos_matrix.reshape(-1,7))[-1][-1]
+        p2ds = (np.concatenate(
+            [np.expand_dims(np.tile(np.expand_dims(np.linspace(0, img_size[0], wsize), 0), [hsize, 1]), -1), \
+             np.expand_dims(np.tile(np.expand_dims(np.linspace(0, img_size[1], hsize), 1), [1, wsize]), -1),
+             np.linspace(2, 78, wsize * hsize).reshape(hsize, wsize, 1)], -1)).reshape(-1, 3)
+        p3ds = self.img_to_rect(p2ds[:, 0:1], p2ds[:, 1:2], p2ds[:, 2:3])
+        p3ds[:, 0] *= -1
+        p2ds[:, 0] = img_size[0] - p2ds[:, 0]
+
+        # self.P2[0,3] *= -1
+        cos_matrix = np.zeros([wsize * hsize, 2, 7])
+        cos_matrix[:, 0, 0] = p3ds[:, 0]
+        cos_matrix[:, 0, 1] = cos_matrix[:, 1, 2] = p3ds[:, 2]
+        cos_matrix[:, 1, 0] = p3ds[:, 1]
+        cos_matrix[:, 0, 3] = cos_matrix[:, 1, 4] = 1
+        cos_matrix[:, :, -2] = -p2ds[:, :2]
+        cos_matrix[:, :, -1] = (-p2ds[:, :2] * p3ds[:, 2:3])
+        new_calib = np.linalg.svd(cos_matrix.reshape(-1, 7))[-1][-1]
         new_calib /= new_calib[-1]
-        
-        new_calib_matrix = np.zeros([4,3]).astype(np.float32)
-        new_calib_matrix[0,0] = new_calib_matrix[1,1] = new_calib[0]
-        new_calib_matrix[2,0:2] = new_calib[1:3]
-        new_calib_matrix[3,:] = new_calib[3:6]
-        new_calib_matrix[-1,-1] = self.P2[-1,-1]
+
+        new_calib_matrix = np.zeros([4, 3]).astype(np.float32)
+        new_calib_matrix[0, 0] = new_calib_matrix[1, 1] = new_calib[0]
+        new_calib_matrix[2, 0:2] = new_calib[1:3]
+        new_calib_matrix[3, :] = new_calib[3:6]
+        new_calib_matrix[-1, -1] = self.P2[-1, -1]
         self.P2 = new_calib_matrix.T
         self.cu = self.P2[0, 2]
         self.cv = self.P2[1, 2]
         self.fu = self.P2[0, 0]
         self.fv = self.P2[1, 1]
         self.tx = self.P2[0, 3] / (-self.fu)
-        self.ty = self.P2[1, 3] / (-self.fv) 
-    def affine_transform(self,img_size,trans):
+        self.ty = self.P2[1, 3] / (-self.fv)
+
+    def affine_transform(self, img_size, trans):
         wsize = 4
         hsize = 2
-        random_depth = np.linspace(2,78,wsize*hsize).reshape(hsize,wsize,1)
-        p2ds = (np.concatenate([np.expand_dims(np.tile(np.expand_dims(np.linspace(0,img_size[0],wsize),0),[hsize,1]),-1),np.expand_dims(np.tile(np.expand_dims(np.linspace(0,img_size[1],hsize),1),[1,wsize]),-1),random_depth],-1)).reshape(-1,3)
-        p3ds = self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])
-        p2ds[:,:2] = np.dot(np.concatenate([p2ds[:,:2],np.ones([wsize*hsize,1])],-1),trans.T)
+        random_depth = np.linspace(2, 78, wsize * hsize).reshape(hsize, wsize, 1)
+        p2ds = (np.concatenate(
+            [np.expand_dims(np.tile(np.expand_dims(np.linspace(0, img_size[0], wsize), 0), [hsize, 1]), -1),
+             np.expand_dims(np.tile(np.expand_dims(np.linspace(0, img_size[1], hsize), 1), [1, wsize]), -1),
+             random_depth], -1)).reshape(-1, 3)
+        p3ds = self.img_to_rect(p2ds[:, 0:1], p2ds[:, 1:2], p2ds[:, 2:3])
+        p2ds[:, :2] = np.dot(np.concatenate([p2ds[:, :2], np.ones([wsize * hsize, 1])], -1), trans.T)
 
-        cos_matrix = np.zeros([wsize*hsize,2,7])
-        cos_matrix[:,0,0] = p3ds[:,0]
-        cos_matrix[:,0,1] = cos_matrix[:,1,2] = p3ds[:,2]
-        cos_matrix[:,1,0] = p3ds[:,1]
-        cos_matrix[:,0,3] = cos_matrix[:,1,4] = 1
-        cos_matrix[:,:,-2] = -p2ds[:,:2]
-        cos_matrix[:,:,-1] = (-p2ds[:,:2]*p3ds[:,2:3])
-        new_calib = np.linalg.svd(cos_matrix.reshape(-1,7))[-1][-1]
+        cos_matrix = np.zeros([wsize * hsize, 2, 7])
+        cos_matrix[:, 0, 0] = p3ds[:, 0]
+        cos_matrix[:, 0, 1] = cos_matrix[:, 1, 2] = p3ds[:, 2]
+        cos_matrix[:, 1, 0] = p3ds[:, 1]
+        cos_matrix[:, 0, 3] = cos_matrix[:, 1, 4] = 1
+        cos_matrix[:, :, -2] = -p2ds[:, :2]
+        cos_matrix[:, :, -1] = (-p2ds[:, :2] * p3ds[:, 2:3])
+        new_calib = np.linalg.svd(cos_matrix.reshape(-1, 7))[-1][-1]
         new_calib /= new_calib[-1]
-        
-        new_calib_matrix = np.zeros([4,3]).astype(np.float32)
-        new_calib_matrix[0,0] = new_calib_matrix[1,1] = new_calib[0]
-        new_calib_matrix[2,0:2] = new_calib[1:3]
-        new_calib_matrix[3,:] = new_calib[3:6]
-        new_calib_matrix[-1,-1] = self.P2[-1,-1]
+
+        new_calib_matrix = np.zeros([4, 3]).astype(np.float32)
+        new_calib_matrix[0, 0] = new_calib_matrix[1, 1] = new_calib[0]
+        new_calib_matrix[2, 0:2] = new_calib[1:3]
+        new_calib_matrix[3, :] = new_calib[3:6]
+        new_calib_matrix[-1, -1] = self.P2[-1, -1]
         return new_calib_matrix.T
-        #return new_calib_matrix.T       
-        #print('{}-->{}'.format(ori_size,tar_size))
-        #print(new_calib_matrix.T)
-        #print(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max())
-        #assert(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max()<1e-10)
+        # return new_calib_matrix.T
+        # print('{}-->{}'.format(ori_size,tar_size))
+        # print(new_calib_matrix.T)
+        # print(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max())
+        # assert(np.abs(p3ds[:,:2] - self.img_to_rect(p2ds[:,0:1],p2ds[:,1:2],p2ds[:,2:3])[:,:2]).max()<1e-10)
+
 
 ###################  affine trainsform  ###################
 
@@ -390,7 +394,7 @@ def get_affine_transform(center,
     src_dir = get_dir([0, src_w * -0.5], rot_rad)
     dst_dir = np.array([0, dst_w * -0.5], np.float32)
 
-    #scale all area
+    # scale all area
     # src_dir = get_dir([0, scale_tmp[1] * -0.5], rot_rad)
     # dst_dir = np.array([0, dst_h * -0.5], np.float32)
 
@@ -404,7 +408,7 @@ def get_affine_transform(center,
     src[2:, :] = get_3rd_point(src[0, :], src[1, :])
     dst[2:, :] = get_3rd_point(dst[0, :], dst[1, :])
 
-    #scale all area
+    # scale all area
     # src[2, :] = np.array([center[0] - 0.5 * scale_tmp[0], center[1] - 0.5 * scale_tmp[1]])
     # dst[2, :] = np.array([0, 0])
 
@@ -422,13 +426,16 @@ def affine_transform(pt, t):
     new_pt = np.dot(t, new_pt)
     return new_pt[:2]
 
+
 def roty(t):
     ''' Rotation about the y-axis. '''
     c = np.cos(t)
     s = np.sin(t)
-    return np.array([[c,  0,  s],
-                     [0,  1,  0],
-                     [-s, 0,  c]])
+    return np.array([[c, 0, s],
+                     [0, 1, 0],
+                     [-s, 0, c]])
+
+
 def compute_box_3d(obj, calib):
     ''' Takes an object and a projection matrix (P) and projects the 3d
         bounding box into the image plane.
@@ -437,32 +444,33 @@ def compute_box_3d(obj, calib):
             corners_3d: (8,3) array in in rect camera coord.
     '''
     # compute rotational matrix around yaw axis
-    R = roty(obj.ry)    
+    R = roty(obj.ry)
 
     # 3d bounding box dimensions
     l = obj.l;
     w = obj.w;
     h = obj.h;
-    
+
     # 3d bounding box corners
-    x_corners = [l/2,l/2,-l/2,-l/2,l/2,l/2,-l/2,-l/2];
-    y_corners = [0,0,0,0,-h,-h,-h,-h];
-    #y_corners = [h/2,h/2,h/2,h/2,-h/2,-h/2,-h/2,-h/2]
-    z_corners = [w/2,-w/2,-w/2,w/2,w/2,-w/2,-w/2,w/2];
-    
+    x_corners = [l / 2, l / 2, -l / 2, -l / 2, l / 2, l / 2, -l / 2, -l / 2];
+    y_corners = [0, 0, 0, 0, -h, -h, -h, -h];
+    # y_corners = [h/2,h/2,h/2,h/2,-h/2,-h/2,-h/2,-h/2]
+    z_corners = [w / 2, -w / 2, -w / 2, w / 2, w / 2, -w / 2, -w / 2, w / 2];
+
     # rotate and translate 3d bounding box
-    corners_3d = np.dot(R, np.vstack([x_corners,y_corners,z_corners]))
-    #print corners_3d.shape
-    corners_3d[0,:] = corners_3d[0,:] + obj.pos[0];
-    corners_3d[1,:] = corners_3d[1,:] + obj.pos[1];
-    corners_3d[2,:] = corners_3d[2,:] + obj.pos[2];
-    
+    corners_3d = np.dot(R, np.vstack([x_corners, y_corners, z_corners]))
+    # print corners_3d.shape
+    corners_3d[0, :] = corners_3d[0, :] + obj.pos[0];
+    corners_3d[1, :] = corners_3d[1, :] + obj.pos[1];
+    corners_3d[2, :] = corners_3d[2, :] + obj.pos[2];
+
     return np.transpose(corners_3d)
-    
-    
+
+
 if __name__ == '__main__':
     from lib.datasets.kitti import KITTI
-    cfg = {'random_flip':0.0, 'random_crop':0.0, 'scale':0.4, 'shift':0.1}
+
+    cfg = {'random_flip': 0.0, 'random_crop': 0.0, 'scale': 0.4, 'shift': 0.1}
     dataset = KITTI('../../data', 'train', cfg)
 
     # calib testing
@@ -473,11 +481,11 @@ if __name__ == '__main__':
     for object in objects:
         print(object.to_kitti_format())
         object.pos[0] *= 1
-        center_3d = object.pos + [0, -object.h/2, 0]   # real 3D center
-        center_3d = center_3d.reshape(-1, 3)   #(N, 3)
+        center_3d = object.pos + [0, -object.h / 2, 0]  # real 3D center
+        center_3d = center_3d.reshape(-1, 3)  # (N, 3)
         center_3d_projected, depth = calib.rect_to_img(center_3d)
         box2d = object.box2d
-        center_2d = [(box2d[0]+box2d[2])/2, (box2d[1]+box2d[3])/2]
-        print ('3D center/2D center/projected 3D center:', center_3d, center_2d, center_3d_projected)
+        center_2d = [(box2d[0] + box2d[2]) / 2, (box2d[1] + box2d[3]) / 2]
+        print('3D center/2D center/projected 3D center:', center_3d, center_2d, center_3d_projected)
         print('alpha ---> ry ', object.alpha, calib.alpha2ry(object.alpha, center_2d[0]))
         break
