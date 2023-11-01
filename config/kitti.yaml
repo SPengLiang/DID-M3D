@@ -6,8 +6,8 @@ dataset:
   label_dir: 'data/KITTI3D/training/label_2'
   eval_cls: ['Car']
 #  eval_cls: ['Car','Pedestrian','Cyclist']
-  batch_size: 20
-  num_workers: 16
+  batch_size: 1
+  num_workers: 1
   class_merging: False
   use_dontcare: False
   use_3d_center: True
