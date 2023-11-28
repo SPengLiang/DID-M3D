@@ -3,3 +3,5 @@ kitti_models/
 data/
 build/
 aug.egg-info/
+
+*.so

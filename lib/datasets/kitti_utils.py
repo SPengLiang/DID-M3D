@@ -109,6 +109,9 @@ class Object3d(object):
                        self.ry)
         return kitti_str
 
+    def __repr__(self):
+        return self.to_str()
+
 
 ###################  calibration  ###################
 

@@ -54,11 +54,22 @@ if __name__ == '__main__':
             'build_ext': BuildExtension,
         },
         ext_modules=[
-            make_cpp_ext(
-                name='roiaware_pool3d',
+            make_cuda_ext(
+                name='roiaware_pool3d_cuda',
                 module='aug.roiaware_pool3d',
                 sources=[
                     'src/roiaware_pool3d.cpp',
+                    'src/roiaware_pool3d_kernel.cu',
+                ]
+            ),
+            make_cuda_ext(
+                name='iou3d_nms_cuda',
+                module='aug.iou3d_nms',
+                sources=[
+                    'src/iou3d_cpu.cpp',
+                    'src/iou3d_nms_api.cpp',
+                    'src/iou3d_nms.cpp',
+                    'src/iou3d_nms_kernel.cu',
                 ]
             ),
         ],
