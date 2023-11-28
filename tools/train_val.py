@@ -19,7 +19,7 @@ from lib.helpers.tester_helper import Tester
 
 parser = argparse.ArgumentParser(description='implementation of DID-M3D')
 parser.add_argument('-e', '--evaluate', dest='evaluate', action='store_true', help='evaluate model on validation set')
-parser.add_argument('--config', type=str, default='experiments/config.yaml')
+parser.add_argument('--config', type=str, default='config/kitti.yaml')
 args = parser.parse_args()
 
 

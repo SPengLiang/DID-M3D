@@ -15,6 +15,8 @@ from lib.datasets.kitti_utils import Calibration
 from lib.datasets.kitti_utils import get_affine_transform
 from lib.datasets.kitti_utils import affine_transform
 from lib.datasets.kitti_utils import compute_box_3d
+from tools.dataset_util import Dataset
+from tools.sample_util import SampleDatabase, merge_labels
 import pdb
 
 import cv2 as cv
@@ -50,21 +52,25 @@ class KITTI(data.Dataset):
         # data split loading
         assert split in ['train', 'val', 'trainval', 'test']
         self.split = split
-        split_dir = os.path.join(root_dir, cfg['data_dir'], 'ImageSets', split + '.txt')
+        split_dir = os.path.join(root_dir, 'ImageSets', split + '.txt')
         self.idx_list = [x.strip() for x in open(split_dir).readlines()]
 
         # path configuration
-        self.data_dir = os.path.join(root_dir, cfg['data_dir'], 'testing' if split == 'test' else 'training')
+        self.data_dir = os.path.join(root_dir, 'testing' if split == 'test' else 'training')
         self.image_dir = os.path.join(self.data_dir, 'image_2')
         self.depth_dir = os.path.join(self.data_dir, 'depth')
         self.calib_dir = os.path.join(self.data_dir, 'calib')
         self.label_dir = os.path.join(self.data_dir, 'label_2')
-        self.dense_depth_dir = cfg['dense_depth_dir']
+        self.database_dir = os.path.join(root_dir, 'kitti_img_database')
+
+        self.dataset = Dataset(split, root_dir)
+        self.database = SampleDatabase(self.database_dir)
 
         # data augmentation configuration
         self.data_augmentation = True if split in ['train', 'trainval'] else False
         self.random_flip = cfg['random_flip']
         self.random_crop = cfg['random_crop']
+        self.random_sample = cfg['random_sample']
         self.scale = cfg['scale']
         self.shift = cfg['shift']
 
@@ -93,20 +99,31 @@ class KITTI(data.Dataset):
     def __len__(self):
         return self.idx_list.__len__()
 
+    def get_data(self, idx, use_aug=False):
+        dataset, database = self.dataset, self.database
+        image, depth = dataset.get_image_with_depth(idx, use_penet=True)
+        calib = dataset.get_calib(idx)
+        ground, non_ground = dataset.get_lidar_with_ground(idx, fov=True)
+        _, _, labels = dataset.get_bbox(idx, chosen_cls=["Car"])
+
+        if use_aug:
+            samples = database.get_samples(ground, non_ground, calib)
+            image, depth, samples = database.add_samples_to_scene(samples, image, depth)
+            labels = merge_labels(labels, samples, calib, image.shape)
+
+        return Image.fromarray(image), Image.fromarray(depth), labels, calib
+
+
+
     def __getitem__(self, item):
         #  ============================   get inputs   ===========================
         index = int(self.idx_list[item])  # index mapping, get real data id
         # image loading
-        img = self.get_image(index)
+        random_sample_flag = False
+        if self.data_augmentation and np.random.random() < self.random_sample :
+            random_sample_flag = True
+        img, d, objects, calib = self.get_data(index, use_aug=random_sample_flag)
         img_size = np.array(img.size)
-
-        # 获取深度图, 多了一步 pad 过程
-        d = cv.imread('{}/{:0>6}.png'.format(self.dense_depth_dir, index), -1) / 256.
-        dst_W, dst_H = img_size
-        pad_h, pad_w = dst_H - d.shape[0], (dst_W - d.shape[1]) // 2
-        pad_wr = dst_W - pad_w - d.shape[1]
-        d = np.pad(d, ((pad_h, 0), (pad_w, pad_wr)), mode='edge')
-        d = Image.fromarray(d)
 
         # data augmentation for image
         center = np.array(img_size) / 2
@@ -147,12 +164,11 @@ class KITTI(data.Dataset):
         img = (img - self.mean) / self.std      # 去中心化与标准化，这样提高收敛速度
         img = img.transpose(2, 0, 1)  # C * H * W
 
-        calib = self.get_calib(index)
         features_size = self.resolution // self.downsample  # W * H
         #  ============================   get labels   ==============================
-        if self.split != 'test':
-            objects = self.get_label(index)
+
             # data augmentation for labels
+        if self.split != 'test':
             if random_flip_flag:
                 calib.flip(img_size)
                 for object in objects:
@@ -253,7 +269,7 @@ class KITTI(data.Dataset):
                 size_3d[i] = src_size_3d[i] - mean_size
 
                 # objects[i].trucation <=0.5 and objects[i].occlusion<=2 and (objects[i].box2d[3]-objects[i].box2d[1])>=25:
-                if objects[i].trucation <= 0.5 and objects[i].occlusion <= 2:   # 这个筛选并不是很严格
+                if objects[i].trucation <= 0.5 and objects[i].occlusion <= 2:
                     mask_2d[i] = 1
 
                 # [7, 7]

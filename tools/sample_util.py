@@ -13,7 +13,7 @@ from lib.datasets.kitti_utils import Object3d
 
 def merge_labels(labels, samples, calib_, image_shape):
     assert all([label.cls_type == "Car" for label in labels])
-    canvas = np.zeros(image.shape[:2], dtype=np.int8) - 1
+    canvas = np.zeros(image_shape[:2], dtype=np.int8) - 1
     labels += [sample.to_label() for sample in samples]
     labels = sorted(labels, key=lambda x: x.pos[2], reverse=True)
     for i, label in enumerate(labels):
@@ -21,8 +21,8 @@ def merge_labels(labels, samples, calib_, image_shape):
         uv, _ = calib_.rect_to_img(corners)
         u_min = round(max(0, np.min(uv[:, 0])))
         v_min = round(max(0, np.min(uv[:, 1])))
-        u_max = round(min(np.max(uv[:, 0]), image.shape[1]))
-        v_max = round(min(np.max(uv[:, 1]), image.shape[0]))
+        u_max = round(min(np.max(uv[:, 0]), image_shape[1]))
+        v_max = round(min(np.max(uv[:, 1]), image_shape[0]))
 
         canvas[v_min: v_max, u_min: u_max] = i
         label.area = (v_max - v_min) * (u_max - u_min)
@@ -199,7 +199,8 @@ class SampleDatabase:
         flag = np.zeros(len(samples), dtype=bool)
         for i, sample in enumerate(samples):
             image_, depth_, flag[i] = sample.cover(image_, depth_)
-        return image_, depth_, samples[flag]
+
+        return image_, depth_, [sample for i, sample in enumerate(samples) if flag[i]]
 
 
 class Sample:
