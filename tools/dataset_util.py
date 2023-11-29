@@ -21,6 +21,11 @@ class Dataset:
         assert lidar_file.exists()
         return np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
 
+    def get_instance(self, idx):
+        instance_file = self.dataset_path / 'instance_2' / ('%06d.png' % idx)
+        assert instance_file.exists()
+        return cv2.imread(str(instance_file))
+
     def get_patchwork(self, idx):
         patchwork_file = self.dataset_path / 'patchwork' / ('%06d.label' % idx)
         assert patchwork_file.exists()
