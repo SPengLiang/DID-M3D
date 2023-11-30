@@ -219,7 +219,7 @@ class Sample:
         self.image = self.get_image()
         self.depth = self.get_depth()
 
-        self.occlusion_ = 3  # 需要在最终图像中求
+        self.occlusion_ = 0  # 需要在最终图像中求
         self.image_, self.depth_, self.bbox2d_ = self.transform()
 
     def __repr__(self):
@@ -288,6 +288,7 @@ class Sample:
 
         bbox2d_ = np.tile((bbox2d[:2] - center) / rate + center_, 2)
         bbox2d_ = np.round(bbox2d_).astype(int)
+        # 这里 bbox2d_ 是可能在背景图像外的
         bbox2d_[2:] += [w_, h_]  # 避免 bbox2d_ 与 image_ 的大小不一致
 
         return image_, depth_, bbox2d_.tolist()
@@ -296,11 +297,14 @@ class Sample:
         assert image.shape[:2] == depth.shape
         blank_rgb, blank_d = image.copy(), depth.copy()
         image_, depth_, bbox2d_ = self.image_, self.depth_, self.bbox2d_
+
         u_min, v_min, u_max, v_max = bbox2d_
+        # 避免 bbox2d_ 在图像外
+        if u_min < 0 or v_min < 0 or u_max > image.shape[1] or v_max > image.shape[0]:
+            return blank_rgb, blank_d, False
 
         d_in_bbox2d = blank_d[v_min: v_max, u_min: u_max]
         valid = (depth_ > 1e-2) & (depth_ < d_in_bbox2d)
-
         area = (v_max - v_min) * (u_max - u_min) - np.sum(depth_ <= 1e-2)
         valid_rate = np.sum(valid) / area
         if valid_rate <= area_threshold:
@@ -316,7 +320,7 @@ class Sample:
         cls = label.cls_type
         trucation = 0
         score = 0
-        occlusion = self.occlusion_
+        occlusion = 0
         x_, y_, z_, l_, h_, w_, ry_ = self.bbox3d_
         alpha = self.get_alpha(self.bbox3d_[:3], ry_, self.calib_)
         u_min, v_min, u_max, v_max = self.bbox2d_
