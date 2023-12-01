@@ -4,7 +4,7 @@ import pathlib
 import re
 import open3d as o3d
 import xml.etree.ElementTree as ET
-
+import skimage.io as io
 from lib.datasets.kitti_utils import Calibration, Object3d, get_objects_from_label
 
 
@@ -16,15 +16,10 @@ class Dataset:
         self.dataset_path = pathlib.Path(rf"{dataset_path}/{self.dataset_name}")
         self.kernel = cv2.getStructuringElement(cv2.MORPH_RECT, (5, 5))
 
-    def get_lidar(self, idx):
-        lidar_file = self.dataset_path / 'velodyne' / ('%06d.bin' % idx)
-        assert lidar_file.exists()
-        return np.fromfile(str(lidar_file), dtype=np.float32).reshape(-1, 4)
-
     def get_instance(self, idx):
         instance_file = self.dataset_path / 'instance_2' / ('%06d.png' % idx)
         assert instance_file.exists()
-        return cv2.imread(str(instance_file))
+        return io.imread(str(instance_file))
 
     def get_patchwork(self, idx):
         patchwork_file = self.dataset_path / 'patchwork' / ('%06d.label' % idx)
