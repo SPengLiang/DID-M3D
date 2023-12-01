@@ -5,8 +5,8 @@ dataset:
   dense_depth_dir: '/mnt/e/DataSet/kitti/training/dense_depth'
   eval_cls: ['Car']
 #  eval_cls: ['Car','Pedestrian','Cyclist']
-  batch_size: 8
-  num_workers: 12
+  batch_size: 2
+  num_workers: 4
   class_merging: False
   use_dontcare: False
   use_3d_center: True

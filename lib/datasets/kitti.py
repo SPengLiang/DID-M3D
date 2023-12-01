@@ -61,7 +61,7 @@ class KITTI(data.Dataset):
         self.depth_dir = os.path.join(self.data_dir, 'depth')
         self.calib_dir = os.path.join(self.data_dir, 'calib')
         self.label_dir = os.path.join(self.data_dir, 'label_2')
-        self.database_dir = os.path.join(root_dir, 'kitti_img_database')
+        self.database_dir = os.path.join(root_dir, 'kitti_inst_database')
 
         self.dataset = Dataset(split, root_dir)
         self.database = SampleDatabase(self.database_dir)
@@ -104,7 +104,7 @@ class KITTI(data.Dataset):
         image, depth = dataset.get_image_with_depth(idx, use_penet=True)
         calib = dataset.get_calib(idx)
         ground, non_ground = dataset.get_lidar_with_ground(idx, fov=True)
-        _, _, labels = dataset.get_bbox(idx, chosen_cls=["Car"])
+        _, _, labels = dataset.get_bbox(idx, chosen_cls=["Car", 'Van', 'Truck', 'DontCare'])
 
         if use_aug:
             samples = database.get_samples(ground, non_ground, calib)
@@ -239,6 +239,7 @@ class KITTI(data.Dataset):
                 radius = gaussian_radius((w, h))
                 radius = max(0, int(radius))
 
+                # 对卡车及超范围物体也进行预测，类型视为车辆
                 if objects[i].cls_type in ['Van', 'Truck', 'DontCare']:
                     draw_umich_gaussian(heatmap[1], center_heatmap, radius)
                     continue

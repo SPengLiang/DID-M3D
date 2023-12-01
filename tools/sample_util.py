@@ -12,7 +12,6 @@ from lib.datasets.kitti_utils import Object3d
 
 
 def merge_labels(labels, samples, calib_, image_shape):
-    assert all([label.cls_type == "Car" for label in labels])
     canvas = np.zeros(image_shape[:2], dtype=np.int8) - 1
     labels += [sample.to_label() for sample in samples]
     labels = sorted(labels, key=lambda x: x.pos[2], reverse=True)
@@ -30,14 +29,15 @@ def merge_labels(labels, samples, calib_, image_shape):
         area = np.sum(canvas == i)
         label.area = 1 - area / label.area
         label.occlusion = area2occlusion(label.area)
+        label.level = label.get_obj_level()
     return labels
 
 def area2occlusion(area):
     if area < 0.1:
         return 0
-    elif area < 0.3:
+    elif area < 0.4:
         return 1
-    elif area < 0.5:
+    elif area < 0.7:
         return 2
     else:
         return 3
@@ -75,16 +75,16 @@ class SampleDatabase:
         assert self.database_path.exists()
         self.image_path = self.database_path / "image"
         self.depth_path = self.database_path / "depth"
-        self.mask_path = self.database_path / "mask"
+        # self.mask_path = self.database_path / "mask"
         with open(self.database_path / "kitti_car_database.pkl", "rb") as f:
             database = pickle.load(f)
         self.database = list(database.values())
 
         self.sample_group = {
-            "sample_num": 20,
+            "sample_num": 15,
             "pointer": len(database),
             "x_range": [[-15.], [15.]],
-            "z_range": [[20.], [70.]],
+            "z_range": [[25.], [65.]],
             "indices": None
         }
 
@@ -142,7 +142,8 @@ class SampleDatabase:
         cos = np.abs(normal[1]) / norm  # abs: 法向量不一定向下
         return cos >= limit
 
-    def sample_put_on_plane(self, bbox3d, ground, radius=2, min_num=10, max_var=0.5e-2, max_degree=20):
+    @staticmethod
+    def sample_put_on_plane(bbox3d, ground, radius=2, min_num=10, max_var=0.5e-2, max_degree=20):
         bbox3d = bbox3d.copy()
         flag = np.zeros((bbox3d.shape[0]), dtype=bool)
         for i, pos in enumerate(bbox3d[:, :3]):
@@ -157,10 +158,10 @@ class SampleDatabase:
             var = pca.explained_variance_ratio_[2]
             if var > max_var:
                 continue
-            if not self.check_normal_angle(normal, max_degree):
+            if not SampleDatabase.check_normal_angle(normal, max_degree):
                 continue
             d = -normal.dot(np.mean(nearby, axis=0))
-            bbox3d[i, 1] = self.get_y_on_plane(pos[0], pos[2], [*normal, d])
+            bbox3d[i, 1] = SampleDatabase.get_y_on_plane(pos[0], pos[2], [*normal, d])
             flag[i] = True
         return bbox3d, flag
 
@@ -337,10 +338,10 @@ class Sample:
 from pathlib import Path
 
 if __name__ == '__main__':
-    test_dir = Path("/mnt/e/DataSet/kitti/kitti_img_database/test")
+    test_dir = Path("/mnt/e/DataSet/kitti/kitti_inst_database/test")
     np.random.seed(0)
 
-    database = SampleDatabase("/mnt/e/DataSet/kitti/kitti_img_database/")
+    database = SampleDatabase("/mnt/e/DataSet/kitti/kitti_inst_database/")
     dataset = Dataset("train", r"/mnt/e/DataSet/kitti")
 
     for idx in range(200):

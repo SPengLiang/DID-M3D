@@ -97,9 +97,8 @@ class Object3d(object):
         return box2d
 
     def to_str(self):
-        print_str = '%s %.3f %.3f %.3f box2d: %s hwl: [%.3f %.3f %.3f] pos: %s ry: %.3f' \
-                    % (self.cls_type, self.trucation, self.occlusion, self.alpha, self.box2d, self.h, self.w, self.l,
-                       self.pos, self.ry)
+        print_str = '%s %.3f %.3f pos: %s' \
+                    % (self.cls_type, self.trucation, self.occlusion, self.pos)
         return print_str
 
     def to_kitti_format(self):
